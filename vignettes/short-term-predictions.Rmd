@@ -1,0 +1,152 @@
+---
+title: "Short Term, Local Case and Reproductive Rates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Short Term, Local Case and Reproductive Rates}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+This post is basically an adapted version of the introduction materials available at <https://epiforecasts.io/EpiSoon/articles/introduction.html>
+
+
+```{r setup}
+library(outbreaktools)
+library(EpiSoon)
+library(nccovid)
+library(dplyr, warn.conflicts = FALSE)
+```
+
+
+```{r}
+nc_dat <- nccovid::get_covid_state(select_county = "Forsyth")
+
+cases_df <- nc_dat %>% 
+  select(cases_daily, date) %>% 
+  rename(cases = cases_daily) %>% 
+  as.data.frame() %>% 
+  filter(date>= as.Date("2020-03-01"))
+```
+
+```{r}
+rt_estimates <- EpiNow::estimate_R0(cases = cases_df,
+                                 serial_intervals = as.matrix(EpiNow::covid_serial_intervals[,1]),
+rt_prior = list(mean_prior = 2.6, std_prior = 2),
+windows = c(1, 3, 7), rt_samples = 10, si_samples = 2,
+min_est_date =  as.Date("2020-03-01"))
+```
+
+```{r}
+summarised_rt <- rt_estimates$rts %>% 
+  group_by(date) %>% 
+  summarise(rt = mean(R)) %>% 
+  select(rt, date)
+```
+
+
+
+```{r}
+
+rt_forecast <- forecast_rt(summarised_rt[1:20,],
+                       model = function(...){EpiSoon::bsts_model(model = function(ss, y){bsts::AddAutoAr(ss, y = y, lags = 10)}, ...)},
+                       horizon = 21, samples = 10)
+```
+
+
+```{r}
+rt_scores <- score_forecast(fit_samples = rt_forecast, summarised_rt)
+rt_scores
+```
+
+```{r}
+summarise_scores(rt_scores)
+```
+
+
+```{r}
+summarised_rt_forecast <- summarise_forecast(rt_forecast)
+```
+
+```{r}
+summarised_rt_forecast
+```
+
+
+```{r}
+plot_forecast(summarised_rt_forecast, EpiSoon::example_obs_rts)
+```
+
+```{r}
+case_forecast <- forecast_cases(cases_df, rt_forecast,
+                                serial_interval = EpiSoon::example_serial_interval)
+```
+
+```{r}
+case_scores <- score_case_forecast(case_forecast, cases_df)
+```
+
+```{r}
+summarised_case_forecast <- summarise_case_forecast(case_forecast)
+
+summarised_case_forecast
+```
+
+```{r}
+plot_forecast(summarised_case_forecast,cases_df)
+```
+
+## Iterative Fitting
+
+```{r}
+it_rt_forecast <- iterative_rt_forecast(summarised_rt,
+                                        model = function(...){
+                                          EpiSoon::bsts_model(model = function(ss, y){bsts::AddAutoAr(ss, y = y, lags = 10)}, ...)
+                                          },
+                                        horizon = 7, samples = 10, min_points = 4)
+```
+
+```{r}
+it_rt_forecast
+```
+
+```{r}
+it_cases_forecast <- iterative_case_forecast(it_fit_samples = it_rt_forecast,
+                                             cases = cases_df,
+                                             serial_interval = EpiSoon::example_serial_interval)
+
+it_cases_forecast
+```
+
+## All Together
+
+```{r}
+model_eval <- evaluate_model(summarised_rt,
+                             cases_df,
+                             model = function(...){
+                                          EpiSoon::bsts_model(model = function(ss, y){bsts::AddAutoAr(ss, y = y, lags = 10)}, ...)
+                                          },
+                             horizon = 21, samples = 10,
+                             serial_interval = EpiSoon::example_serial_interval)
+```
+
+```{r}
+plot_forecast_evaluation(model_eval$forecast_rts,
+                         summarised_rt,
+                         horizon_to_plot = 7)
+```
+
+```{r}
+plot_forecast_evaluation(model_eval$forecast_cases,
+                         cases_df,
+                         horizon_to_plot = 14)
+```
+

@@ -4,3 +4,6 @@
 ^data-raw$
 ^\.travis\.yml$
 ^Read-and-delete-me$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

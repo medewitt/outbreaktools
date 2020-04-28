@@ -19,10 +19,26 @@ library(outbreaktools)
 library(nccovid)
 ```
 
+First we can pull in our case data from the Johns Hopkins github using the `nccovid::pull_state_cases` function.
+
 ```{r}
 dat <- pull_state_cases()
 ```
 
+Next, we can generate the underreporting that we estimate, and we can adjust our case fatality information based on the meta analysis performed in another post.
+
 ```{r}
-reports <- generate_underreporting_estimates(dat)
+reports <- generate_underreporting_estimates(dat, 
+                                             cCFRBaseline = 1,
+                                             cCFREstimateRange = c(.67, 1.34))
 ```
+
+Now we can display the data.
+
+```{r}
+reports %>% 
+  dplyr::arrange(-lower) %>% 
+  dplyr::select(country, total_cases, total_deaths,underreporting_estimate_clean) %>% 
+  knitr::kable(col.names = c("County", "Cases", "Deaths", "Perc Reported"), caption = "Estimated Reported Symptomatic Cases by North Carolina County (Minimum of Five Reported Deaths)")
+```
+

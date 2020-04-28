@@ -15,9 +15,9 @@ pull_state_cases <- function(state_of_interest = "North Carolina",
 	nc_data <- nc_data %>%
 		dplyr::select(county,date, cases_daily,deaths_daily) %>%
 		setNames(c("country", "date", "new_cases", "new_deaths")) %>%
-		dplyr::mutate(date = lubridate::mdy(date)) %>%
+		#dplyr::mutate(date = lubridate::mdy(date)) %>%
 		dplyr::group_by(country) %>%
-		padr::pad() %>%
+		padr::pad(interval = "day") %>%
 		dplyr::mutate(new_cases = tidyr::replace_na(new_cases, 0),
 									new_deaths = tidyr::replace_na(new_deaths, 0)) %>%
 		dplyr::group_by(country) %>%

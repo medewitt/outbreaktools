@@ -21,10 +21,14 @@ usethis::use_package("ggpubr")
 usethis::use_pipe()
 # Add Vignettes
 usethis::use_vignette("under-reporting", title = "Example Under Reporting Estimates")
+usethis::use_vignette("short-term-predictions", title = "Short Term, Local Case and Reproductive Rates")
+
+usethis::use_vignette("ifr-meta", title = "Meta-Analysis of Infection Fatality Ratio")
+
 
 # Add PAckagedown
 usethis::use_pkgdown()
-
+pkgdown::build_site()
 # Add CI
 usethis::use_github_action("check-standard")
 usethis::use_github_action("pkgdown")

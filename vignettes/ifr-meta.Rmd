@@ -1,0 +1,82 @@
+---
+title: "Meta-Analysis of Infection Fatality Ratio"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Meta-Analysis of Infection Fatality Ratio}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(outbreaktools)
+library(brms)
+```
+
+A re-interpreation of [this excellent post](https://medium.com/@gidmk/what-is-the-infection-fatality-rate-of-covid-19-7f58f7c90410)
+
+```{r}
+library(dplyr)
+dat_meta <- tibble::tribble(
+  ~"Author", ~"TE", ~"ci95",
+  "Jung et al", .7, 0.52,
+  "CEBM", .2, .1,
+  "Ferguson et al", 1, .62,
+  "Nishiura et al", .45, .09,
+  "Tian et al", 1.15, 1.15,
+  "Verity et al", .66, .6,
+  "Russell et al", .6, .4,
+  "Bendavid et al", .2, .04,
+  "New York City", .93, .02,
+  "Rinaldi et al", 1.29, .72,
+  "Roques et al", .8, .45,
+  "Villa et al", 1.6, .5,
+  "Modi et al", .95, .75
+) %>% 
+  mutate(seTE = ci95/1.96)
+```
+
+```{r}
+priors <- c(prior(normal(.01,.002), class = Intercept),
+            prior(cauchy(0,0.1), class = sd))
+```
+
+```{r}
+m <- brm(TE|se(seTE) ~ 1 + (1|Author),
+             data = dat_meta,
+             prior = priors,chains = 4,cores = 4,
+             iter = 4000, refresh = 0)
+```
+
+```{r}
+pp_check(m, nsamples = 25)+
+  ggplot2::theme_minimal()
+```
+
+```{r}
+summary(m)
+```
+
+```{r}
+post_samples <- posterior_samples(m, c("^b", "^sd"))
+names(post_samples) <- c("smd", "tau")
+```
+
+```{r}
+quantz <- quantile(post.samples$smd, c(.05, .5, .95))*100
+hist(post_samples$smd*100, col = "grey", main = "Posterior Distribution of Infection Fatality Rate", adj = 0, ylab = "Frequency", xlab = "IFR")
+abline(v =quantz, lty = 2, col = "orange")
+text(x = quantz, y= 10,labels = round(quantz,2))
+```
+
+
+```{r}
+quantile(post.samples$smd, c(.05, .5, .95))*100
+```
+
