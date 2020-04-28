@@ -19,7 +19,13 @@ library(outbreaktools)
 library(brms)
 ```
 
-A re-interpreation of [this excellent post](https://medium.com/@gidmk/what-is-the-infection-fatality-rate-of-covid-19-7f58f7c90410)
+A re-interpreation of [this excellent post](https://medium.com/@gidmk/what-is-the-infection-fatality-rate-of-covid-19-7f58f7c90410) with methods based [on this book on meta-analysis](https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/bayesian-meta-analysis-in-r-using-the-brms-package.html).
+
+## Data
+
+The following are the data from a systematic review of Infection Fatality Ratios (IFR). 
+As a reminder, IFRs are lower than Case Fatality Ratios (CFRs) because they include asymptomatic people. 
+With roughly 30% of the population being asymptomatic (this needs another meta-analysis), there must be some adjustments made.
 
 ```{r}
 library(dplyr)
@@ -42,10 +48,18 @@ dat_meta <- tibble::tribble(
   mutate(seTE = ci95/1.96)
 ```
 
+# Priors
+
+Set some relatively tight priors.
+
 ```{r}
 priors <- c(prior(normal(.01,.002), class = Intercept),
             prior(cauchy(0,0.1), class = sd))
 ```
+
+# Model Fitting
+
+Fit it.
 
 ```{r}
 m <- brm(TE|se(seTE) ~ 1 + (1|Author),
@@ -69,7 +83,7 @@ names(post_samples) <- c("smd", "tau")
 ```
 
 ```{r}
-quantz <- quantile(post.samples$smd, c(.05, .5, .95))*100
+quantz <- quantile(post_samples$smd, c(.05, .5, .95))*100
 hist(post_samples$smd*100, col = "grey", main = "Posterior Distribution of Infection Fatality Rate", adj = 0, ylab = "Frequency", xlab = "IFR")
 abline(v =quantz, lty = 2, col = "orange")
 text(x = quantz, y= 10,labels = round(quantz,2))
@@ -77,6 +91,6 @@ text(x = quantz, y= 10,labels = round(quantz,2))
 
 
 ```{r}
-quantile(post.samples$smd, c(.05, .5, .95))*100
+quantile(post_samples$smd, c(.05, .5, .95))*100
 ```
 
