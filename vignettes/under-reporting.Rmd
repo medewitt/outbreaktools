@@ -29,8 +29,8 @@ Next, we can generate the underreporting that we estimate, and we can adjust our
 
 ```{r}
 reports <- generate_underreporting_estimates(dat, 
-                                             cCFRBaseline = 1/.7,
-                                             cCFREstimateRange = c(.67, 1.34)/.7)
+                                             cCFRBaseline = 1,
+                                             cCFREstimateRange = c(.67, 1.34))
 ```
 
 Now we can display the data.
